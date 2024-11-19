@@ -1,5 +1,6 @@
 Flask
-opencv-python
+gunicorn
 numpy
+opencv-python
 mediapipe
 pillow
