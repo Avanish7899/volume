@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volume Control Using Hand Gestures</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #222;
+            color: white;
+            padding: 10px 0;
+        }
+        header img {
+            height: 100px;
+        }
+        h1 {
+            margin: 20px 0;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        video {
+            border: 2px solid #333;
+            border-radius: 10px;
+            width: 60%;
+            margin-bottom: 20px;
+        }
+        audio {
+            margin: 20px 0;
+            width: 100%;
+        }
+        p {
+            font-size: 18px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo">
+    </header>
+
+    <!-- Title -->
+    <h1>Volume Control Using Hand Gestures</h1>
+
+    <div class="container">
+        <!-- Camera Feed -->
+        <div>
+            <h2>Camera Feed</h2>
+            <video id="video" autoplay></video>
+        </div>
+
+        <!-- Audio Player -->
+        <div>
+            <h2>Audio Player</h2>
+            <audio id="audio" controls autoplay>
+                <source src="{{ url_for('static', filename='your-audio-file.mp3') }}" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+            <p>Volume: <span id="volume-display">50</span>%</p>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const audio = document.getElementById('audio');
+        const volumeDisplay = document.getElementById('volume-display');
+
+        // Access the user's camera
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Error accessing camera:", err);
+            });
+
+        // Capture frames from the video feed and send to Flask for processing
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        setInterval(() => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const frameData = canvas.toDataURL('image/jpeg');
+
+            fetch('/process_frame', {
+                method: 'POST',
+                body: JSON.stringify({ image: frameData }),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const volume = data.volume; // Volume received from Flask
+                audio.volume = volume / 100; // Adjust audio volume
+                volumeDisplay.textContent = volume; // Update display
+            })
+            .catch(err => console.error("Error sending frame to Flask:", err));
+        }, 100); // Send frames every 100ms
+    </script>
+</body>
+</html>
